@@ -1,7 +1,12 @@
 
 var express = require('express');
-var bodyParser = require('body-parser')
+var multer = require('multer');
+var bodyParser = require('body-parser');
+var upload = multer({dest: 'upload/'});
+var path = require('path');
 var app = express();
+var fs = require('fs');
+var type = upload.single('uploadfile');
 var i=1;
 
 app.use(express.static('public'));
@@ -15,51 +20,100 @@ var client = connect.client;
 var stringify = require('json-stringify');
 
 
-/*
-client.ping({
-	// ping usually has a 3000ms timeout 
-	requestTimeout: Infinity,
+  // Make sure uploads directory exists                                                                                                                                                                     
+var uploadDir = path.join(__dirname, '/uploads');
+if (!fs.existsSync(uploadDir)){
+    fs.mkdirSync(uploadDir);
+}
+
+
+
+
+
+
+var ex_json = {
+  id : 1234,
+  title: "hej",
+  text: "once apon a time"
+};
+
+
+//called from webpage
+//put file in tmp folder
+app.post('/upload',type, function(req,res){
+	console.log("in upload");
+
+  var tmp_path = req.file.path;
  
-	    // undocumented params are appended to the query string 
-	    hello: "elasticsearch!"
-	    }, function (error) {
-	if (error) {
-	    console.trace('elasticsearch cluster is down!');
-	} else {
-	    console.log('All is well');
-	}
-    });
+  var src = fs.createReadStream(tmp_path);
 
-
-client.cluster.health({},function(err,resp,status) {  
-  console.log("-- Client Health --",resp);
+  var destpath = path.join(uploadDir, req.file.originalname);
+  var dest = fs.createWriteStream(path.join(uploadDir, req.file.originalname));
+  src.pipe(dest);
+  src.end;
+  res.end("done");
+ 
+  
 });
-*/
+
+//called from batch
+app.post('/upload_es',function(req,res){
+	console.log("in upload_es");
+  var uploaditem=ex_json;
+  createDoc(uploaditem);
+  res.end("done");
+});
+
+//TODO: to be removed
+app.post('/test',function(req,res){
+  	console.log("********** in test!!!!!!!");
+
+  res.json({ user: 'tobi' });
+    
+});
 
 
- /* client.indices.create({  
-  doctext: 'hej'
-  },function(err,resp,status) {
-    if(err) {
-    console.log(err);
-  }
-  else {
-    console.log("createDoc",resp);
-  }
-  });
-}*/
 
 
+//called from webpage
+//load index.html
+app.get('/',function(req,res){
+  res.sendFile(path.join(__dirname, "/index.html"));
+});
 
-function createDoc (str){
+
+//called from webpage
+//load search.html
+app.get('/search',function(req,res){
+  res.sendFile(path.join(__dirname, "/search.html"));
+});
+
+
+//called from web page
+app.post('/search/docs',function(req,res){
+	console.log("in search/doc");
+    var searchstring = req.body.searchstring;
+    console.log("Search string="+searchstring);
+    searchDoc(searchstring, res);
+    res.end("done");
+});
+
+
+app.listen(8888,function(){
+  console.log("Started on PORT 8888");
+})
+
+
+//create in es
+function createDoc (item){
 client.index({
 
   index: 'myindex',
   type: 'mytype',
- // id: i++,
   body: {
-    title: str,
-    published_at: '2013-01-01',
+    id: item.id,
+    title: item.title,
+    text: item.text
   }
   
 }, function (error, response) {
@@ -68,7 +122,7 @@ client.index({
 }
 
 
-//Find tweets that have "elasticsearch" in their body field
+//search in es
 function searchDoc (str) {
 client.search({ 
 
@@ -84,47 +138,10 @@ client.search({
       console.log("--- Hits ---");
       response.hits.hits.forEach(function(hit){
         console.log(hit);
-        console.log("title: "+hit._source.title);
+        console.log("json: "+JSON.stringify(hit._source));
       })
       
 
     }
 });
 }
-
-
-
-
-app.get('/',function(req,res){
-  res.sendfile("index.html");
-});
-
-
-app.get('/search',function(req,res){
-  res.sendfile("search.html");
-});
-
-app.post('/upload',function(req,res){
-	console.log("in upload");
-  var uploadstring=req.body.uploadstring;
-  console.log("Upload string="+uploadstring);
-  createDoc(uploadstring);
-  res.end("done");
-});
-
-app.post('/search/docs',function(req,res){
-	console.log("in search/doc");
-    var searchstring = req.body.searchstring;
-    console.log("Search string="+searchstring);
-    searchDoc(searchstring, res);
-    res.end("done");
-});
-
-
-
-
-
-
-app.listen(8888,function(){
-  console.log("Started on PORT 8888");
-})

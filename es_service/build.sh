@@ -1,1 +1,1 @@
-docker build -t my-nodejs-app .  
+docker build -t webapp .  

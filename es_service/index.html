@@ -5,11 +5,12 @@
   </head>
   <body>
     <h1>Upload a string</h1>
-    <form action="/upload" method="post">
-      <input type="text" name="uploadstring" value="">
+    <form action="/upload" method="post" enctype="multipart/form-data">
+      <input type="file" name="uploadfile">
       <br>
       <br>
       <input type="submit" value="Upload" />
     </form>
+
   </body>
 </html>
