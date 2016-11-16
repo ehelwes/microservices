@@ -20,15 +20,11 @@ var client = connect.client;
 var stringify = require('json-stringify');
 
 
-  // Make sure uploads directory exists                                                                                                                                                                     
-var uploadDir = path.join(__dirname, '/uploads');
+// Make sure uploads directory exists                                                                                                                                                                     
+var uploadDir = path.join(__dirname, '/uploadedFiles');
 if (!fs.existsSync(uploadDir)){
     fs.mkdirSync(uploadDir);
 }
-
-
-
-
 
 
 var ex_json = {
@@ -57,6 +53,38 @@ app.post('/upload',type, function(req,res){
 });
 
 //called from batch
+app.post('/removeFile', function (req,res){
+
+fs.unlink(req.body.title, function(err) {
+  if (err){
+	  console.log(err);
+	  } else {
+  console.log('successfully deleted '+req.body.title );
+	  }
+     res.json({ user: 'tobi' });
+
+});
+
+
+});
+
+//called from batch
+app.get('/collectFiles', function (req, res){
+
+  fs.readdir(uploadDir, function (err, files) {
+    if (err) {
+        throw err;
+    }
+  console.log("****"+files)
+   res.send(files);
+
+});
+ 
+})
+
+
+
+//called from batch
 app.post('/upload_es',function(req,res){
 	console.log("in upload_es");
   var uploaditem=ex_json;
@@ -64,15 +92,16 @@ app.post('/upload_es',function(req,res){
   res.end("done");
 });
 
-//TODO: to be removed
-app.post('/test',function(req,res){
-  	console.log("********** in test!!!!!!!");
 
-  res.json({ user: 'tobi' });
-    
+//called from web page
+//search dock in es from string
+app.post('/search/docs',function(req,res){
+	console.log("in search/doc");
+    var searchstring = req.body.searchstring;
+    console.log("Search string="+searchstring);
+    searchDoc(searchstring, res);
+    res.end("done");
 });
-
-
 
 
 //called from webpage
@@ -88,14 +117,27 @@ app.get('/search',function(req,res){
   res.sendFile(path.join(__dirname, "/search.html"));
 });
 
-
-//called from web page
-app.post('/search/docs',function(req,res){
-	console.log("in search/doc");
-    var searchstring = req.body.searchstring;
-    console.log("Search string="+searchstring);
-    searchDoc(searchstring, res);
-    res.end("done");
+//called from batch
+//File sent from uploadedFilesDir
+app.get('/uploadedFiles/:name', function (req, res, next) {
+    var options = {
+        root: path.join(__dirname, '/uploadedFiles'),
+        dotfiles: 'deny',
+        headers: {
+            'x-timestamp': Date.now(),
+            'x-sent': true
+        }
+    };
+    var fileName = req.params.name;
+    res.sendFile(fileName, options, function (err) {
+        if (err) {
+            console.log(err);
+            res.status(err.status).end();
+        }
+        else {
+            console.log('Sent:', fileName);
+        }
+    });
 });
 
 
