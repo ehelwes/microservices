@@ -75,7 +75,6 @@ app.get('/collectFiles', function (req, res){
     if (err) {
         throw err;
     }
-  console.log("****"+files)
    res.send(files);
 
 });
@@ -87,9 +86,10 @@ app.get('/collectFiles', function (req, res){
 //called from batch
 app.post('/upload_es',function(req,res){
 	console.log("in upload_es");
-  var uploaditem=ex_json;
+  var uploaditem=req.body
+  console.log(uploaditem);
   createDoc(uploaditem);
-  res.end("done");
+  res.json(null);
 });
 
 
